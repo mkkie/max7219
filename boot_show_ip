@@ -3,30 +3,25 @@
 IFCONF=/sbin/ifconfig
 LED_SHOW=/usr/local/bin/led_msg.py
 
-function get_ip() {
-$IFCONF $1 | grep "inet addr:" | sed 's/^.*addr://g' | sed 's/Bcast.*$//g'
+function get_ip {
+  ${IFCONF} ${1} | grep "inet " | sed 's/^.*inet //g' | sed 's/netmask.*$//g'
 }
 
-function netdev_list() {
-ifconfig | sed 's/[ \t].*//;/^\(lo\|\)$/d'
+function netdev_list {
+  ${IFCONF} | sed 's/[ \t].*//;/^\(lo:\|\)$/d;s/://'
 }
 
 trap "echo Ctrl + C; exit" INT
 
-for loop in `seq 6`
-    do
-	print_value=""
-	devs=$(netdev_list)
-
-	for dev_name in $devs
-	    do
-		$IFCONF ${dev_name} | grep "inet addr" > /dev/null
-		if (($? == 0)); then
-	    	    print_value="${print_value}${dev_name}:`get_ip ${dev_name}` "
-		fi
-	    done
-
-	$LED_SHOW -m "${print_value}" -b 5
-	sleep 10
+for loop in `seq 6`; do
+  print_value=""
+  devs=$(netdev_list)
+    for dev_name in $devs; do
+      if ${IFCONF} ${dev_name} | grep "inet " > /dev/null; then
+        print_value="${dev_name}: $(get_ip ${dev_name}) "
+      fi
     done
+  ${LED_SHOW} -m "${print_value}" -b 5
+  sleep 10
+done
 
